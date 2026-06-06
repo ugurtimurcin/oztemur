@@ -1,0 +1,6 @@
+@Oztemur.API_HostAddress = http://localhost:5137
+
+GET {{Oztemur.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

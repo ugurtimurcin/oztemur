@@ -1,0 +1,81 @@
+# Öztemur stack — single-host Docker deployment (any Linux VPS).
+#
+# Setup:
+#   1. cp .env.example .env   (then edit .env — host, passwords)
+#   2. docker compose up -d --build
+#
+# URLs after start:
+#   public site  http://<PUBLIC_HOST>:3000
+#   admin panel  http://<PUBLIC_HOST>:3001
+#   API          http://<PUBLIC_HOST>:5000
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: oztemur
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: oztemurdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oztemur -d oztemurdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./oztemur_be/Oztemur.API
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=oztemurdb;Username=oztemur;Password=${POSTGRES_PASSWORD};"
+      Jwt__SecretKey: ${JWT_SECRET}
+      Cors__AllowedOrigins__0: "http://${PUBLIC_HOST}:3000"
+      Cors__AllowedOrigins__1: "http://${PUBLIC_HOST}:3001"
+      # Used to build absolute URLs in outbound mail (e.g. password reset link).
+      Admin__BaseUrl: "http://${PUBLIC_HOST}:3001"
+    volumes:
+      # Uploaded media + CVs survive container restarts.
+      - api-uploads:/app/App_Data
+      # Rolling daily error log files survive restarts/rebuilds.
+      - api-logs:/app/logs
+      # ASP.NET DataProtection keys — encrypted SMTP password becomes
+      # unreadable if these are lost on rebuild.
+      - api-keys:/app/keys
+    ports:
+      - "5000:8080"
+
+  fe:
+    build:
+      context: ./oztemur_fe
+      args:
+        # Baked into the client bundle — rebuild (--build) if PUBLIC_HOST changes.
+        NEXT_PUBLIC_API_BASE_URL: "http://${PUBLIC_HOST}:5000"
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+  admin:
+    build:
+      context: ./oztemur_admin
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://${PUBLIC_HOST}:5000"
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3001:3000"
+
+volumes:
+  db-data:
+  api-uploads:
+  api-logs:
+  api-keys:

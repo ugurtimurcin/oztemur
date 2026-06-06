@@ -1,0 +1,11 @@
+# Build outputs — rebuilt inside the image
+bin/
+obj/
+
+# Local secrets must never be baked into the image
+appsettings.Development.json
+appsettings.Local.json
+
+# IDE / misc
+.vs/
+*.user

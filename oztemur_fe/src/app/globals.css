@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Icons are inline SVG — see src/components/Icon.tsx. */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: #B89968;
+    color: #0F2A24;
+  }
+}
+
+@layer components {
+  /* ── Display / hero typography ───────────────────────── */
+  .text-display-xl {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: clamp(3.25rem, 8.5vw, 7.5rem);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 50, "WONK" 0, "opsz" 144;
+  }
+  .text-display-lg {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    line-height: 1.0;
+    letter-spacing: -0.022em;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 50, "opsz" 144;
+  }
+  .text-display-md {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 50, "opsz" 144;
+  }
+  .text-display-sm {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+    line-height: 1.15;
+    letter-spacing: -0.014em;
+    font-weight: 500;
+    font-variation-settings: "SOFT" 30, "opsz" 144;
+  }
+
+  /* ── Eyebrow / small caps label ──────────────────────── */
+  .eyebrow {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #B89968;
+  }
+  .eyebrow-muted {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #6B6F69;
+  }
+
+  /* ── Hairlines / dividers ────────────────────────────── */
+  .gold-rule { width: 56px; height: 1px; background: #B89968; }
+  .ivory-rule { width: 56px; height: 1px; background: rgba(240, 234, 216, 0.4); }
+  .charcoal-rule { width: 56px; height: 1px; background: #1F2520; }
+
+  /* ── Refined link button ─────────────────────────────── */
+  .btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid currentColor;
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+  .btn-link .arrow {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn-link:hover .arrow {
+    transform: translateX(6px);
+  }
+
+  /* ── Solid pill button ───────────────────────────────── */
+  .btn-solid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    padding: 1.125rem 2.25rem;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn-solid-gold {
+    background: #B89968;
+    color: #0F2A24;
+  }
+  .btn-solid-gold:hover {
+    background: #D6BB8E;
+    transform: translateY(-1px);
+  }
+  .btn-solid-midnight {
+    background: #0F2A24;
+    color: #F0EAD8;
+  }
+  .btn-solid-midnight:hover {
+    background: #173B33;
+    transform: translateY(-1px);
+  }
+  .btn-outline-ivory {
+    border: 1px solid rgba(240, 234, 216, 0.5);
+    color: #F0EAD8;
+    padding: 1.125rem 2.25rem;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn-outline-ivory:hover {
+    background: #F0EAD8;
+    color: #0F2A24;
+  }
+
+  /* ── Editorial body prose ────────────────────────────── */
+  .prose-editorial p {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.85;
+    font-weight: 300;
+    color: #2B2B2B;
+    margin-bottom: 1.75rem;
+  }
+  .prose-editorial p:first-of-type::first-letter {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: 4.5rem;
+    line-height: 0.85;
+    float: left;
+    margin: 0.35rem 0.75rem 0 0;
+    font-weight: 500;
+    color: #0F2A24;
+  }
+}
+
+@layer utilities {
+  /* ── Subtle press / scale ───────────────────────────── */
+  .press-95:active { transform: scale(0.96); transition: transform 0.1s ease; }
+  .press-98:active { transform: scale(0.98); transition: transform 0.1s ease; }
+
+  /* ── Texture: subtle film grain (used on dark heroes) ─ */
+  .texture-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Dot grid (subtle pattern) ──────────────────────── */
+  .pattern-dots {
+    background-image: radial-gradient(rgba(184, 153, 104, 0.18) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* ── Hide scrollbar (used in horizontal nav rails) ─── */
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { scrollbar-width: none; }
+}

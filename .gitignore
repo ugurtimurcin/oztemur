@@ -1,0 +1,105 @@
+# ===============================================================
+# FRONTEND SYSTEM (Next.js 15 App Router)
+# ===============================================================
+
+# dependencies
+node_modules/
+oztemur_fe/node_modules/
+oztemur_admin/node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+coverage/
+oztemur_fe/coverage/
+
+# next.js local artifacts
+.next/
+oztemur_fe/.next/
+out/
+oztemur_fe/out/
+*.tsbuildinfo
+**/next-env.d.ts
+
+# production
+oztemur_fe/build/
+
+# env files
+oztemur_fe/.env*
+.env*
+!.env.example
+
+# vercel deployment
+oztemur_fe/.vercel/
+
+
+# ===============================================================
+# BACKEND SYSTEM (.NET Core & C#)
+# ===============================================================
+
+# Build and Release Folders
+oztemur_be/**/bin/
+oztemur_be/**/obj/
+oztemur_be/**/out/
+oztemur_be/**/TestResults/
+
+# .NET User Specific Files
+oztemur_be/**/*.user
+oztemur_be/**/*.userosscache
+oztemur_be/**/*.sln.docstates
+
+# Visual Studio & Rider Environments
+.vs/
+.idea/
+*.suo
+*.userosscache
+*.sln.docstates
+*.resharper
+*.resharper.user
+_ReSharper.*/
+*.DotSettings.user
+
+# Local DB & Appsettings
+oztemur_be/**/appsettings.Development.json
+oztemur_be/**/appsettings.Local.json
+oztemur_be/**/*.sqlite
+oztemur_be/**/*.mdf
+oztemur_be/**/*.ldf
+
+# Profiler & Crash logs
+oztemur_be/**/*.psess
+oztemur_be/**/*.vsp
+oztemur_be/**/*.vspx
+oztemur_be/**/*.sap
+
+
+# ===============================================================
+# OS & MISCELLANEOUS
+# ===============================================================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Global temporary files
+*.bak
+*.swp
+*~.nib
+
+# User-uploaded media & documents
+uploads/
+documents/

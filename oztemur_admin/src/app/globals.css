@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* Icons are inline SVG — see src/components/Icon.tsx. */
+
+/* ═══════════════════════════════════════════════
+   Öztemur Admin · "Architectural Light" Design System
+   Inspired by Stitch Corporate Management Suite
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* Surface Hierarchy (No-Line Rule) */
+  --surface:           #f7f9fb;
+  --surface-low:       #f2f4f6;
+  --surface-lowest:    #ffffff;
+  --surface-high:      #e6e8ea;
+
+  /* Primary — Deep Indigo */
+  --primary:           #000666;
+  --primary-container: #1a237e;
+  --primary-fixed:     #e0e0ff;
+  --on-primary:        #ffffff;
+  --on-primary-fixed:  #000767;
+
+  /* Text */
+  --on-surface:         #191c1e;
+  --on-surface-variant: #454652;
+  --outline:            #757680;
+  --outline-variant:    #c6c5d4;
+
+  /* Semantic */
+  --success:            #1b7d3e;
+  --success-container:  #d5f5e3;
+  --warning:            #a15e00;
+  --warning-container:  #ffefd6;
+  --error:              #b3261e;
+  --error-container:    #ffdad6;
+  --secondary-container:#d5e3fc;
+  --on-secondary:       #0d1e3d;
+
+  /* Shadows — Ambient Tonal Lift */
+  --shadow-soft:    0 2px 8px rgba(25,28,30,0.04);
+  --shadow-ambient: 0 12px 32px -4px rgba(25,28,30,0.06);
+}
+
+/* ─── Reset ─────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--surface);
+  color: var(--on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Manrope', 'Inter', sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 10px; }
+
+/* ─── Focus ─────────────────────────────────── */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-fixed);
+}
+
+/* ─── Keyframes ─────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fieldShake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-6px); } 40% { transform:translateX(5px); } 60% { transform:translateX(-3px); } 80% { transform:translateX(2px); } }
+
+/* ─── Utility ───────────────────────────────── */
+.ghost-border { border: 1px solid rgba(198,197,212,0.3); }
+.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
