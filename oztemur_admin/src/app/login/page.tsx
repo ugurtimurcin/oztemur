@@ -4,20 +4,24 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { login, getStoredUser } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { user, login, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
-  useEffect(() => { if (getStoredUser()) router.replace("/"); }, [router]);
+
+  useEffect(() => {
+    if (!authLoading && user) router.replace("/");
+  }, [authLoading, user, router]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setLoading(true); setError(null);

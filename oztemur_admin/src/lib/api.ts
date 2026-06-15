@@ -1,101 +1,12 @@
-/* ═══════════════════════════════════════════════
-   Öztemur Admin · API Client
-   ═══════════════════════════════════════════════ */
+import { authRefreshRef, tokenRef, userRef } from "./AuthContext";
+
+export type { AuthUser } from "./AuthContext";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5137";
 
-// ─── Auth helpers ──────────────────────────────
-export interface AuthUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  permissions: string[];
-}
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("oz_token");
-}
-
-function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("oz_refresh");
-}
-
-function storeAuth(token: string, refreshToken: string, user: AuthUser) {
-  localStorage.setItem("oz_token", token);
-  localStorage.setItem("oz_refresh", refreshToken);
-  localStorage.setItem("oz_user", JSON.stringify(user));
-}
-
-export function getStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem("oz_user");
-  if (!raw) return null;
-  const u = JSON.parse(raw) as Partial<AuthUser>;
-  // Tolerate older stored payloads that predate the permission model.
-  return { ...u, permissions: u.permissions ?? [] } as AuthUser;
-}
-
-/** True when the stored user carries the given "{module}.{action}" permission. */
 export function hasPermission(permission: string): boolean {
-  const u = getStoredUser();
+  const u = userRef.current;
   return !!u && u.permissions.includes(permission);
-}
-
-export function clearAuth() {
-  localStorage.removeItem("oz_token");
-  localStorage.removeItem("oz_refresh");
-  localStorage.removeItem("oz_user");
-}
-
-export async function login(email: string, password: string) {
-  try {
-    const res = await fetch(`${BASE}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const json = await res.json();
-    if (json.success && json.data) {
-      storeAuth(json.data.token, json.data.refreshToken, json.data.user);
-      return { success: true };
-    }
-    return { success: false, message: json.message || "Login failed." };
-  } catch {
-    return { success: false, message: "Network error." };
-  }
-}
-
-// Coalesces concurrent refresh attempts so a burst of 401s only triggers
-// one refresh round-trip — the others wait on the in-flight promise and
-// then retry with the freshly minted access token.
-let refreshInFlight: Promise<boolean> | null = null;
-async function tryRefresh(): Promise<boolean> {
-  if (refreshInFlight) return refreshInFlight;
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-  refreshInFlight = (async () => {
-    try {
-      const res = await fetch(`${BASE}/api/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success && json.data) {
-        storeAuth(json.data.token, json.data.refreshToken, json.data.user);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    } finally {
-      refreshInFlight = null;
-    }
-  })();
-  return refreshInFlight;
 }
 
 // ─── Password reset (unauthenticated) ──────────
@@ -129,27 +40,21 @@ export const authResetApi = {
   },
   reset: (token: string, newPassword: string) => postPublic("/api/auth/reset-password", { token, newPassword }),
 };
-
-// ─── Generic fetch with auth + transparent refresh ──
-// On a 401 we try to exchange the refresh token for a fresh access token
-// and replay the original request once. If the refresh fails (expired /
-// revoked / network), we clear auth and bounce to /login.
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<{ success: boolean; data?: T; message?: string }> {
   const doRequest = async () => {
-    const token = getToken();
     const headers: Record<string, string> = { "Content-Type": "application/json", ...((options.headers as Record<string, string>) || {}) };
+    const token = tokenRef.current;
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    return fetch(`${BASE}${path}`, { ...options, headers });
+    return fetch(`${BASE}${path}`, { ...options, headers, credentials: "include" });
   };
 
   try {
     let res = await doRequest();
     if (res.status === 401) {
-      const refreshed = await tryRefresh();
+      const refreshed = await (authRefreshRef.current?.() ?? Promise.resolve(false));
       if (refreshed) {
         res = await doRequest();
       } else {
-        clearAuth();
         if (typeof window !== "undefined") window.location.href = "/login";
         return { success: false, message: "Unauthorized" };
       }
@@ -315,11 +220,8 @@ export const careersApi = {
     apiFetch<ApplicationReplyDto>(`/api/admin/careers/applications/${id}/reply`, { method: "POST", body: JSON.stringify({ subject, body }) }),
   downloadCv: async (id: string) => {
     try {
-      const token = getToken();
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch(`${BASE}/api/admin/careers/applications/${id}/cv`, { headers });
-      if (!res.ok) return null;
+      const res = await authedRawFetch(`${BASE}/api/admin/careers/applications/${id}/cv`);
+      if (!res || !res.ok) return null;
       const blob = await res.blob();
       return URL.createObjectURL(blob);
     } catch {
@@ -327,6 +229,26 @@ export const careersApi = {
     }
   }
 };
+
+
+async function authedRawFetch(url: string, init: RequestInit = {}): Promise<Response | null> {
+  const doRequest = async () => {
+    const headers: Record<string, string> = { ...((init.headers as Record<string, string>) || {}) };
+    const token = tokenRef.current;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url, { ...init, headers, credentials: "include" });
+  };
+  let res = await doRequest();
+  if (res.status === 401) {
+    const refreshed = await (authRefreshRef.current?.() ?? Promise.resolve(false));
+    if (!refreshed) {
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return null;
+    }
+    res = await doRequest();
+  }
+  return res;
+}
 
 // ─── Comms API ─────────────────────────────────
 // One row in the reply history shown beneath a contact message. `sentBy`
@@ -360,14 +282,10 @@ export interface UploadResult { url: string; fileName: string; size: number; con
 
 export async function uploadFile(file: File): Promise<{ success: boolean; data?: UploadResult; message?: string }> {
   try {
-    const token = getToken();
     const formData = new FormData();
     formData.append("file", file);
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const res = await fetch(`${BASE}/api/admin/storage/upload`, { method: "POST", headers, body: formData });
-    if (res.status === 401) { clearAuth(); window.location.href = "/login"; return { success: false, message: "Unauthorized" }; }
+    const res = await authedRawFetch(`${BASE}/api/admin/storage/upload`, { method: "POST", body: formData });
+    if (!res) return { success: false, message: "Unauthorized" };
     const json = await res.json();
     return { success: json.success, data: json.data, message: json.message };
   } catch {
@@ -681,35 +599,11 @@ export const translationsApi = {
   summary: (target: string) =>
     apiFetch<TranslationSummary>(`/api/admin/translations/summary?target=${encodeURIComponent(target)}`),
 
-  // Returns the raw xlsx blob — bypasses apiFetch because the response is a
-  // binary file, not JSON. Same auth + 401-refresh dance, just with .blob()
-  // at the end and a content-disposition-driven filename.
+
   exportXlsx: async (target: string, mode: TranslationExportMode = "all"): Promise<{ blob: Blob; filename: string } | null> => {
     const url = `${BASE}/api/admin/translations/export?target=${encodeURIComponent(target)}&mode=${mode}`;
-    const doRequest = async () => {
-      const token = getToken();
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      return fetch(url, { headers });
-    };
-    let res = await doRequest();
-    if (res.status === 401) {
-      try {
-        const refresh = await fetch(`${BASE}/api/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: localStorage.getItem("oz_refresh") }),
-        });
-        const j = await refresh.json();
-        if (j.success && j.data) {
-          localStorage.setItem("oz_token", j.data.token);
-          localStorage.setItem("oz_refresh", j.data.refreshToken);
-          localStorage.setItem("oz_user", JSON.stringify(j.data.user));
-          res = await doRequest();
-        }
-      } catch { /* fall through to null */ }
-    }
-    if (!res.ok) return null;
+    const res = await authedRawFetch(url);
+    if (!res || !res.ok) return null;
     const blob = await res.blob();
     const cd = res.headers.get("content-disposition") || "";
     const match = cd.match(/filename="?([^";]+)"?/i);

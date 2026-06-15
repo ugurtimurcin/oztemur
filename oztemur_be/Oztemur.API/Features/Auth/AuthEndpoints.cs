@@ -1,26 +1,28 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
+using Oztemur.API.Common.Models;
 using Oztemur.API.Features.Auth.Services;
 
 namespace Oztemur.API.Features.Auth;
 
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
-public record RefreshRequest(string RefreshToken);
 
 public static class AuthEndpoints
 {
+    public const string RefreshCookieName = "oz_refresh";
+
+    private const string RefreshCookiePath = "/api/auth";
+
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth").WithTags("Authentication");
 
-        group.MapPost("/login", async (LoginRequestDto req, IAuthService service) =>
+        group.MapPost("/login", async (LoginRequestDto req, IAuthService service, HttpContext ctx, IHostEnvironment env) =>
         {
-            var result = await service.LoginAsync(req);
-            return result.Success
-                ? Results.Ok(result)
-                : Results.Json(result, statusCode: result.StatusCode);
+            var outcome = await service.LoginAsync(req);
+            if (!outcome.Result.Success)
+                return Results.Json(outcome.Result, statusCode: outcome.Result.StatusCode);
+            SetRefreshCookie(ctx, env, outcome.RefreshToken!);
+            return Results.Ok(outcome.Result);
         }).RequireRateLimiting("auth");
 
         group.MapPost("/register", async (RegisterRequestDto req, IAuthService service) =>
@@ -31,17 +33,27 @@ public static class AuthEndpoints
                 : Results.BadRequest(result);
         });
 
-        // Refresh exchanges a long-lived refresh token for a new access +
-        // refresh pair. Rate-limited under "auth" so a stolen token can't
-        // be brute-rotated. The endpoint returns 401 on every failure mode
-        // so the FE interceptor knows to redirect to /login.
-        group.MapPost("/refresh", async (RefreshRequest req, IAuthService service) =>
+        group.MapPost("/refresh", async (IAuthService service, HttpContext ctx, IHostEnvironment env) =>
         {
-            var result = await service.RefreshAsync(req.RefreshToken ?? "");
-            return result.Success
-                ? Results.Ok(result)
-                : Results.Json(result, statusCode: result.StatusCode);
-        }).RequireRateLimiting("auth");
+            var refreshToken = ctx.Request.Cookies[RefreshCookieName] ?? string.Empty;
+            var outcome = await service.RefreshAsync(refreshToken);
+            if (!outcome.Result.Success)
+            {
+                ClearRefreshCookie(ctx);
+                return Results.Json(outcome.Result, statusCode: outcome.Result.StatusCode);
+            }
+            SetRefreshCookie(ctx, env, outcome.RefreshToken!);
+            return Results.Ok(outcome.Result);
+        }).RequireRateLimiting("auth-refresh");
+
+        group.MapPost("/logout", async (IAuthService service, HttpContext ctx) =>
+        {
+            var refreshToken = ctx.Request.Cookies[RefreshCookieName];
+            if (!string.IsNullOrEmpty(refreshToken))
+                await service.RevokeRefreshTokenAsync(refreshToken);
+            ClearRefreshCookie(ctx);
+            return Results.Ok(Result.Ok("Logged out."));
+        });
 
         // ─── Password reset flow ──────────────────────────
         // All three endpoints share the auth rate limiter (10 / 5min / IP)
@@ -65,5 +77,25 @@ public static class AuthEndpoints
             var result = await service.ResetPasswordAsync(req.Token ?? "", req.NewPassword ?? "");
             return result.Success ? Results.Ok(result) : Results.BadRequest(result);
         }).RequireRateLimiting("auth");
+    }
+
+    private static void SetRefreshCookie(HttpContext ctx, IHostEnvironment env, string token)
+    {
+        ctx.Response.Cookies.Append(RefreshCookieName, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !env.IsDevelopment(),
+            SameSite = SameSiteMode.Strict,
+            Path = RefreshCookiePath,
+            MaxAge = TimeSpan.FromDays(7),
+        });
+    }
+
+    private static void ClearRefreshCookie(HttpContext ctx)
+    {
+        ctx.Response.Cookies.Delete(RefreshCookieName, new CookieOptions
+        {
+            Path = RefreshCookiePath,
+        });
     }
 }

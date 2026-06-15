@@ -2,14 +2,8 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Npgsql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Oztemur.API.Common.Models;
@@ -173,6 +167,16 @@ builder.Services.AddRateLimiter(options =>
             http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
 
+    // "auth-refresh" — silent refresh fires every ~14 min for an active
+    // session, plus the AuthProvider mounts on every full reload. Sharing
+    // the strict /login limit would lock legitimate sessions out within
+    // an hour of dev iteration. /refresh is not a brute-force target on
+    // its own (you need a valid HttpOnly cookie) so a higher cap is safe.
+    options.AddPolicy("auth-refresh", http =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(5) }));
+
     options.AddPolicy("public-forms", http =>
         RateLimitPartition.GetFixedWindowLimiter(
             http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -189,7 +193,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 

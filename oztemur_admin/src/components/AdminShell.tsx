@@ -4,11 +4,11 @@
    ═══════════════════════════════════════════════ */
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getStoredUser, clearAuth, type AuthUser } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 import NotificationBell from "@/components/NotificationBell";
 import LangSwitch from "@/components/LangSwitch";
@@ -69,8 +69,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const { t } = useI18n();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [ready, setReady] = useState(false);
+  const { loading, user, logout } = useAuth();
 
   // Pages that don't need auth — login + the password-reset flow. New
   // public routes must be added here or the guard below will bounce
@@ -78,14 +77,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const isPublicPath = path === "/login" || path === "/forgot-password" || path === "/reset-password";
 
   useEffect(() => {
-    const u = getStoredUser();
-    if (!u && !isPublicPath) { router.replace("/login"); return; }
-    setUser(u);
-    setReady(true);
-  }, [path, router, isPublicPath]);
+    if (!loading && !user && !isPublicPath) router.replace("/login");
+  }, [loading, user, isPublicPath, router]);
 
   if (isPublicPath) return <>{children}</>;
-  if (!ready || !user) return (
+  if (loading || !user) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface)" }}>
       <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid var(--primary-fixed)", borderTopColor: "var(--primary)", animation: "spin .8s linear infinite" }} />
     </div>
@@ -161,7 +157,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--on-surface)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{user.firstName} {user.lastName}</p>
               <p style={{ fontSize: 11, color: "var(--outline)" }}>{roleLabel}</p>
             </div>
-            <button onClick={() => { clearAuth(); router.push("/login"); }} title={t("Sign out", "Çıkış yap")} style={{ padding: 6, cursor: "pointer", background: "none", border: "none", color: "var(--outline)", display: "flex" }}>
+            <button onClick={async () => { await logout(); router.push("/login"); }} title={t("Sign out", "Çıkış yap")} style={{ padding: 6, cursor: "pointer", background: "none", border: "none", color: "var(--outline)", display: "flex" }}>
               <Icon name="logout" style={{ fontSize: 18 }} />
             </button>
           </div>

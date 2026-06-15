@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { emailSettingsApi, getStoredUser, type EmailProfileDto } from "@/lib/api";
+import { emailSettingsApi, type EmailProfileDto } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useI18n } from "@/lib/i18n";
@@ -31,6 +32,7 @@ export default function EmailProfileFormPage() {
   const { t } = useI18n();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+  const { user: currentUser } = useAuth();
   const isNew = id === "new";
 
   const [form, setForm] = useState<EmailProfileDto>(empty);
@@ -116,7 +118,7 @@ export default function EmailProfileFormPage() {
   };
 
   const openTestModal = () => {
-    if (!testTo) setTestTo(getStoredUser()?.email ?? "");
+    if (!testTo) setTestTo(currentUser?.email ?? "");
     setTestModalOpen(true);
   };
 

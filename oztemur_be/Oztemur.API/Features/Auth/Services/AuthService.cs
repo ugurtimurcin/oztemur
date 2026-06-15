@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Oztemur.API.Common.Authorization;
 using Oztemur.API.Common.Models;
@@ -23,9 +17,10 @@ namespace Oztemur.API.Features.Auth.Services;
 
 public interface IAuthService
 {
-    Task<Result<object>> LoginAsync(LoginRequestDto request);
+    Task<AuthOutcome> LoginAsync(LoginRequestDto request);
     Task<Result<object>> RegisterAsync(RegisterRequestDto request);
-    Task<Result<object>> RefreshAsync(string refreshToken);
+    Task<AuthOutcome> RefreshAsync(string refreshToken);
+    Task RevokeRefreshTokenAsync(string refreshToken);
     Task<Result> RequestPasswordResetAsync(string email);
     Task<Result> ValidatePasswordResetTokenAsync(string token);
     Task<Result> ResetPasswordAsync(string token, string newPassword);
@@ -33,6 +28,9 @@ public interface IAuthService
 
 public record LoginRequestDto(string Email, string Password);
 public record RegisterRequestDto(string FirstName, string LastName, string Email, string Password);
+
+
+public record AuthOutcome(Result<object> Result, string? RefreshToken);
 
 public class AuthService : IAuthService
 {
@@ -69,7 +67,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<Result<object>> LoginAsync(LoginRequestDto request)
+    public async Task<AuthOutcome> LoginAsync(LoginRequestDto request)
     {
         var users = await _userRepo.GetAsync(u => u.Email == request.Email);
         var user = users.Count > 0 ? users[0] : null;
@@ -77,30 +75,28 @@ public class AuthService : IAuthService
         if (user == null)
         {
             // Unknown email — there is no account owner to notify.
-            return Result<object>.Failure("Invalid email or password.", statusCode: 401);
+            return new AuthOutcome(Result<object>.Failure("Invalid email or password.", statusCode: 401), null);
         }
 
-        // Verify password hash
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             await NotifyFailedLoginAsync(user);
-            return Result<object>.Failure("Invalid email or password.", statusCode: 401);
+            return new AuthOutcome(Result<object>.Failure("Invalid email or password.", statusCode: 401), null);
         }
 
         if (!user.IsActive)
-            return Result<object>.Failure("Your account has been deactivated. Contact an administrator.", statusCode: 403);
+            return new AuthOutcome(Result<object>.Failure(
+                "Your account has been deactivated. Contact an administrator.", statusCode: 403), null);
 
-        // Update last login timestamp
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await _userRepo.UpdateAsync(user);
 
         var token = GenerateJwtToken(user);
         var refreshToken = await IssueRefreshTokenAsync(user.Id);
 
-        return Result<object>.Ok(new
+        var result = Result<object>.Ok(new
         {
             Token = token,
-            RefreshToken = refreshToken,
             User = new
             {
                 user.Id,
@@ -110,23 +106,24 @@ public class AuthService : IAuthService
                 user.Permissions
             }
         }, "Authentication successful.");
+        return new AuthOutcome(result, refreshToken);
     }
 
-    public async Task<Result<object>> RefreshAsync(string refreshToken)
+    public async Task<AuthOutcome> RefreshAsync(string refreshToken)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return Result<object>.Failure("Refresh token gerekli.", statusCode: 401);
+            return new AuthOutcome(Result<object>.Failure("Refresh token gerekli.", statusCode: 401), null);
 
         var hash = HashToken(refreshToken);
         var record = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash);
-        if (record == null) return Result<object>.Failure("Geçersiz refresh token.", statusCode: 401);
-        if (record.UsedAt != null) return Result<object>.Failure("Bu refresh token zaten kullanılmış.", statusCode: 401);
-        if (record.RevokedAt != null) return Result<object>.Failure("Bu refresh token iptal edilmiş.", statusCode: 401);
-        if (record.ExpiresAt <= DateTimeOffset.UtcNow) return Result<object>.Failure("Refresh token süresi dolmuş.", statusCode: 401);
+        if (record == null) return new AuthOutcome(Result<object>.Failure("Geçersiz refresh token.", statusCode: 401), null);
+        if (record.UsedAt != null) return new AuthOutcome(Result<object>.Failure("Bu refresh token zaten kullanılmış.", statusCode: 401), null);
+        if (record.RevokedAt != null) return new AuthOutcome(Result<object>.Failure("Bu refresh token iptal edilmiş.", statusCode: 401), null);
+        if (record.ExpiresAt <= DateTimeOffset.UtcNow) return new AuthOutcome(Result<object>.Failure("Refresh token süresi dolmuş.", statusCode: 401), null);
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == record.UserId);
         if (user == null || !user.IsActive)
-            return Result<object>.Failure("Hesap bulunamadı veya devre dışı.", statusCode: 401);
+            return new AuthOutcome(Result<object>.Failure("Hesap bulunamadı veya devre dışı.", statusCode: 401), null);
 
         // Single-use: stamp the old record consumed before issuing the new
         // pair. If the same token is replayed later, the second exchange
@@ -137,10 +134,9 @@ public class AuthService : IAuthService
         var newAccess = GenerateJwtToken(user);
         var newRefresh = await IssueRefreshTokenAsync(user.Id);
 
-        return Result<object>.Ok(new
+        var result = Result<object>.Ok(new
         {
             Token = newAccess,
-            RefreshToken = newRefresh,
             User = new
             {
                 user.Id,
@@ -150,6 +146,18 @@ public class AuthService : IAuthService
                 user.Permissions
             }
         }, "Token refreshed.");
+        return new AuthOutcome(result, newRefresh);
+    }
+
+    public async Task RevokeRefreshTokenAsync(string refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken)) return;
+        var hash = HashToken(refreshToken);
+        var record = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash);
+        if (record == null) return;
+        if (record.RevokedAt != null) return;
+        record.RevokedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
     }
 
     private async Task<string> IssueRefreshTokenAsync(Guid userId)
