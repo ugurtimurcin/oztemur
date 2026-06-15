@@ -43,6 +43,11 @@ function prettyJson(raw: string | null): string {
   }
 }
 
+interface FullscreenPanel {
+  title: string;
+  body: string;
+}
+
 export default function AuditLogPage() {
   const { t } = useI18n();
   const [items, setItems] = useState<AuditLogDto[]>([]);
@@ -51,6 +56,13 @@ export default function AuditLogPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState<FullscreenPanel | null>(null);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   const [tableFilter, setTableFilter] = useState("");
   const [actionFilter, setActionFilter] = useState("");
@@ -194,22 +206,18 @@ export default function AuditLogPage() {
                   <Icon name="expand_more" style={{ fontSize: 18, color: "var(--outline)", justifySelf: "end", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
                 </div>
 
-                {open && (
-                  <div style={{ padding: "0 20px 16px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--outline)", marginBottom: 6 }}>{t("Old values", "Eski değerler")}</div>
-                      <pre style={{ background: "var(--surface)", borderRadius: 6, padding: 12, fontSize: 11, color: "var(--on-surface-variant)", overflow: "auto", maxHeight: 320, fontFamily: "'JetBrains Mono', ui-monospace, monospace", lineHeight: 1.5, margin: 0 }}>
-                        {prettyJson(row.oldValues)}
-                      </pre>
+                {open && (() => {
+                  const oldLabel = t("Old values", "Eski değerler");
+                  const newLabel = t("New values", "Yeni değerler");
+                  const oldBody = prettyJson(row.oldValues);
+                  const newBody = prettyJson(row.newValues);
+                  return (
+                    <div style={{ padding: "0 20px 16px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "stretch" }}>
+                      <DiffPanel title={oldLabel} body={oldBody} expandLabel={t("Open fullscreen", "Tam ekran aç")} onExpand={() => setFullscreen({ title: oldLabel, body: oldBody })} />
+                      <DiffPanel title={newLabel} body={newBody} expandLabel={t("Open fullscreen", "Tam ekran aç")} onExpand={() => setFullscreen({ title: newLabel, body: newBody })} />
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--outline)", marginBottom: 6 }}>{t("New values", "Yeni değerler")}</div>
-                      <pre style={{ background: "var(--surface)", borderRadius: 6, padding: 12, fontSize: 11, color: "var(--on-surface-variant)", overflow: "auto", maxHeight: 320, fontFamily: "'JetBrains Mono', ui-monospace, monospace", lineHeight: 1.5, margin: 0 }}>
-                        {prettyJson(row.newValues)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
@@ -238,6 +246,121 @@ export default function AuditLogPage() {
           </button>
         </div>
       )}
+
+      {fullscreen && (
+        <FullscreenModal
+          title={fullscreen.title}
+          body={fullscreen.body}
+          closeLabel={t("Close", "Kapat")}
+          onClose={() => setFullscreen(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+interface DiffPanelProps {
+  title: string;
+  body: string;
+  expandLabel: string;
+  onExpand: () => void;
+}
+function DiffPanel({ title, body, expandLabel, onExpand }: DiffPanelProps) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--outline)" }}>
+          {title}
+        </span>
+        <button
+          type="button"
+          onClick={onExpand}
+          title={expandLabel}
+          aria-label={expandLabel}
+          style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--outline)", display: "flex", alignItems: "center", borderRadius: 4 }}
+          onMouseEnter={e => { e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.background = "var(--surface)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "var(--outline)"; e.currentTarget.style.background = "none"; }}
+        >
+          <Icon name="open_in_full" style={{ fontSize: 16 }} />
+        </button>
+      </div>
+      <pre
+        style={{
+          background: "var(--surface)",
+          borderRadius: 6,
+          padding: 12,
+          fontSize: 11,
+          color: "var(--on-surface-variant)",
+          height: 360,
+          overflow: "auto",
+          whiteSpace: "pre",
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          lineHeight: 1.5,
+          margin: 0,
+        }}
+      >
+        {body}
+      </pre>
+    </div>
+  );
+}
+
+interface FullscreenModalProps {
+  title: string;
+  body: string;
+  closeLabel: string;
+  onClose: () => void;
+}
+function FullscreenModal({ title, body, closeLabel, onClose }: FullscreenModalProps) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 100,
+        background: "rgba(0, 0, 0, 0.35)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "stretch", justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "var(--surface-lowest)", borderRadius: 12,
+          width: "100%", maxWidth: 1400,
+          display: "flex", flexDirection: "column",
+          overflow: "hidden", boxShadow: "var(--shadow-elevated)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderBottom: "1px solid rgba(198,197,212,0.25)" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--primary)" }}>
+            {title}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            title={closeLabel}
+            aria-label={closeLabel}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: "var(--outline)", display: "flex", borderRadius: 4 }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--on-surface)"; e.currentTarget.style.background = "var(--surface)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--outline)"; e.currentTarget.style.background = "none"; }}
+          >
+            <Icon name="close" style={{ fontSize: 20 }} />
+          </button>
+        </div>
+        <pre
+          style={{
+            margin: 0, padding: "20px 24px",
+            background: "var(--surface)",
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            fontSize: 13, lineHeight: 1.6,
+            color: "var(--on-surface)",
+            flex: 1, overflow: "auto",
+            whiteSpace: "pre",
+          }}
+        >
+          {body}
+        </pre>
+      </div>
     </div>
   );
 }
