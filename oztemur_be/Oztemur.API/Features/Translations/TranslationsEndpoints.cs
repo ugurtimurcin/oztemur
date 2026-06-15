@@ -50,7 +50,9 @@ public static class TranslationsEndpoints
             var hashes = sameLanguage
                 ? new Dictionary<(string, Guid, string), string>()
                 : await LoadHashesAsync(db, target);
-            var rows = BuildRows(fields, hashes, sameLanguage);
+            var backfill = sameLanguage ? null : new List<TranslationSourceHash>();
+            var rows = BuildRows(fields, hashes, sameLanguage, backfill, sameLanguage ? null : target);
+            if (backfill != null) await FlushBackfillAsync(db, backfill);
 
             var exportMode = ParseMode(mode);
             var filtered = exportMode switch
@@ -83,7 +85,9 @@ public static class TranslationsEndpoints
             var hashes = sameLanguage
                 ? new Dictionary<(string, Guid, string), string>()
                 : await LoadHashesAsync(db, target);
-            var rows = BuildRows(fields, hashes, sameLanguage);
+            var backfill = sameLanguage ? null : new List<TranslationSourceHash>();
+            var rows = BuildRows(fields, hashes, sameLanguage, backfill, sameLanguage ? null : target);
+            if (backfill != null) await FlushBackfillAsync(db, backfill);
             var summary = new
             {
                 target,
@@ -190,7 +194,9 @@ public static class TranslationsEndpoints
     private static List<TranslationRow> BuildRows(
         List<TranslatableField> fields,
         Dictionary<(string, Guid, string), string> hashes,
-        bool sameLanguage)
+        bool sameLanguage,
+        List<TranslationSourceHash>? backfillSink = null,
+        string? targetLang = null)
     {
         var output = new List<TranslationRow>(fields.Count);
         foreach (var f in fields)
@@ -210,16 +216,47 @@ public static class TranslationsEndpoints
             }
             else
             {
+                var key = (f.EntityType, f.EntityId, f.FieldPath);
                 var currentHash = TranslationsXlsx.HashSource(f.SourceText);
-                status = hashes.TryGetValue((f.EntityType, f.EntityId, f.FieldPath), out var stored) && stored == currentHash
-                    ? TranslationStatus.UpToDate
-                    : TranslationStatus.Stale;
+                if (hashes.TryGetValue(key, out var stored))
+                {
+                    status = stored == currentHash
+                        ? TranslationStatus.UpToDate
+                        : TranslationStatus.Stale;
+                }
+                else if (backfillSink != null && targetLang != null)
+                {
+                    backfillSink.Add(new TranslationSourceHash
+                    {
+                        EntityType = f.EntityType,
+                        EntityId = f.EntityId,
+                        FieldPath = f.FieldPath,
+                        TargetLanguage = targetLang,
+                        SourceHash = currentHash,
+                    });
+                    hashes[key] = currentHash;
+                    status = TranslationStatus.UpToDate;
+                }
+                else
+                {
+                    status = TranslationStatus.Stale;
+                }
             }
             output.Add(new TranslationRow(
                 f.EntityType, f.EntityId, f.EntityLabel, f.FieldPath, status,
                 f.SourceText, f.TargetText ?? string.Empty));
         }
         return output;
+    }
+
+    private static async Task FlushBackfillAsync(OztemurDbContext db, List<TranslationSourceHash> backfill)
+    {
+        if (backfill.Count == 0) return;
+        db.TranslationSourceHashes.AddRange(backfill);
+        try { await db.SaveChangesAsync(); }
+        catch (DbUpdateException)
+        {
+        }
     }
 
     private static async Task<Dictionary<(string, Guid, string), string>> LoadHashesAsync(
