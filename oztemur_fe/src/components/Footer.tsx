@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/components/Icon";
+import { safeExternalUrl } from "@/lib/url";
 
 export type FooterContent = Record<string, string> & {
   tagline: string;
@@ -108,6 +109,9 @@ export const FOOTER_FALLBACK: Record<string, FooterContent> = {
 export default function Footer({ content }: { content: FooterContent }) {
   const t = content;
   const values = [t.value1, t.value2, t.value3].filter(Boolean);
+  const instagramHref = safeExternalUrl(content.social_instagram_url);
+  const facebookHref = safeExternalUrl(content.social_facebook_url);
+  const linkedinHref = safeExternalUrl(content.social_linkedin_url);
 
   return (
     <footer className="relative bg-midnight text-ivory mt-auto overflow-hidden">
@@ -140,9 +144,9 @@ export default function Footer({ content }: { content: FooterContent }) {
           <p className="text-ivory/60 font-light leading-relaxed max-w-sm">{t.tagline}</p>
 
           <div className="mt-10 flex gap-3">
-            {content.social_instagram_url && (
+            {instagramHref && (
               <a
-                href={content.social_instagram_url}
+                href={instagramHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
@@ -153,9 +157,9 @@ export default function Footer({ content }: { content: FooterContent }) {
                 </svg>
               </a>
             )}
-            {content.social_facebook_url && (
+            {facebookHref && (
               <a
-                href={content.social_facebook_url}
+                href={facebookHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
@@ -166,9 +170,9 @@ export default function Footer({ content }: { content: FooterContent }) {
                 </svg>
               </a>
             )}
-            {content.social_linkedin_url && (
+            {linkedinHref && (
               <a
-                href={content.social_linkedin_url}
+                href={linkedinHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"

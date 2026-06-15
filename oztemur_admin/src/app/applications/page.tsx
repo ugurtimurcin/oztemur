@@ -5,6 +5,7 @@ import DataTable from "@/components/DataTable";
 import Pagination from "@/components/Pagination";
 import { careersApi, type JobApplicationDto, ApplicationStatus } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { safeExternalUrl } from "@/lib/url";
 import Icon from "@/components/Icon";
 
 const PAGE_SIZE = 25;
@@ -107,13 +108,16 @@ export default function ApplicationsPage() {
               render: a => (
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <span style={{ color: "#4b5563", fontSize: 13 }}>{a.email}</span>
-                  {a.linkedInUrl ? (
-                    <a href={a.linkedInUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#4338ca", fontSize: 12, textDecoration: "none" }}>
-                      <Icon name="link" style={{ fontSize: 14 }} /> {t("LinkedIn profile", "LinkedIn profili")}
-                    </a>
-                  ) : (
-                    <span style={{ fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>{t("No portfolio provided", "Portföy belirtilmemiş")}</span>
-                  )}
+                  {(() => {
+                    const safeUrl = safeExternalUrl(a.linkedInUrl);
+                    return safeUrl ? (
+                      <a href={safeUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#4338ca", fontSize: 12, textDecoration: "none" }}>
+                        <Icon name="link" style={{ fontSize: 14 }} /> {t("LinkedIn profile", "LinkedIn profili")}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>{t("No portfolio provided", "Portföy belirtilmemiş")}</span>
+                    );
+                  })()}
                 </div>
               )
             },

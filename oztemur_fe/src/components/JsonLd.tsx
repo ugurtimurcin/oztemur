@@ -6,12 +6,11 @@
  * on first byte without waiting for client JS.
  */
 export default function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
+  const payload = JSON.stringify(data).replace(/</g, "\\u003c");
   return (
     <script
       type="application/ld+json"
-      // dangerouslySetInnerHTML is the standard way to ship JSON-LD.
-      // Schema content is generated server-side from typed objects.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: payload }}
     />
   );
 }

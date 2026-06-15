@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { getCompanies, getMediaUrl, type CompanyDto } from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSection } from "@/lib/SiteContentContext";
+import { safeExternalUrl } from "@/lib/url";
 import Icon from "@/components/Icon";
 
 const HERO_FALLBACK: Record<string, Record<string, string>> = {
@@ -290,19 +291,22 @@ export default function CompaniesPage() {
                 <div className="border-t border-border pt-8 mt-auto">
                   <span className="eyebrow-muted block mb-6">{labels.contact}</span>
                   <ul className="space-y-4">
-                    {selected.websiteUrl && (
-                      <li className="flex items-center gap-4">
-                        <Icon name="language" className="text-base text-champagne" />
-                        <a
-                          href={selected.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-charcoal hover:text-champagne transition-colors text-sm"
-                        >
-                          {selected.websiteUrl.replace(/^https?:\/\//, "")}
-                        </a>
-                      </li>
-                    )}
+                    {(() => {
+                      const websiteHref = safeExternalUrl(selected.websiteUrl);
+                      return websiteHref && (
+                        <li className="flex items-center gap-4">
+                          <Icon name="language" className="text-base text-champagne" />
+                          <a
+                            href={websiteHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-charcoal hover:text-champagne transition-colors text-sm"
+                          >
+                            {websiteHref.replace(/^https?:\/\//, "")}
+                          </a>
+                        </li>
+                      );
+                    })()}
                     {selected.contactEmail && (
                       <li className="flex items-center gap-4">
                         <Icon name="mail" className="text-base text-champagne" />
