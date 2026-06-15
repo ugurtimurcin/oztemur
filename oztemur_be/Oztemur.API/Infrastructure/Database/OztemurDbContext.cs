@@ -57,7 +57,14 @@ public class OztemurDbContext : DbContext
         var auditEntries = new List<AuditLog>();
 
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is BaseEntity && !(e.Entity is AuditLog) && !(e.Entity is Notification) && e.State != EntityState.Detached && e.State != EntityState.Unchanged)
+            .Where(e => e.Entity is BaseEntity
+                && e.Entity is not AuditLog
+                && e.Entity is not Notification
+                && e.Entity is not RefreshToken
+                && e.Entity is not PasswordResetToken
+                && e.Entity is not TranslationSourceHash
+                && e.State != EntityState.Detached
+                && e.State != EntityState.Unchanged)
             .ToList();
 
         foreach (var entry in entries)
