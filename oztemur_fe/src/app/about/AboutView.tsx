@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import HeroMedia, { ManagedMedia } from "@/components/HeroMedia";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSection } from "@/lib/SiteContentContext";
+import Reveal from "@/components/Reveal";
 import Icon from "@/components/Icon";
 
 const HERO_FALLBACK: Record<string, Record<string, string>> = {
@@ -150,12 +151,12 @@ export default function AboutPage() {
       {/* ── Story (editorial split) ─────────────────── */}
       <section className="bg-cream py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-14 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-5 lg:sticky lg:top-32">
+          <Reveal direction="left" className="lg:col-span-5 lg:sticky lg:top-32">
             <span className="eyebrow">{story.storyEyebrow}</span>
             <div className="gold-rule mt-5 mb-8" />
             <h2 className="text-display-lg text-charcoal leading-tight">{story.storyTitle}</h2>
-          </div>
-          <div className="lg:col-span-6 lg:col-start-7">
+          </Reveal>
+          <Reveal direction="right" delay={120} className="lg:col-span-6 lg:col-start-7">
             <p className="text-on-muted text-xl font-light leading-loose mb-10">{story.storyBodyA}</p>
             <div className="relative aspect-[4/3] overflow-hidden bg-midnight my-12">
               <ManagedMedia
@@ -166,7 +167,7 @@ export default function AboutPage() {
               />
             </div>
             <p className="text-on-muted text-lg font-light leading-loose">{story.storyBodyB}</p>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -174,24 +175,28 @@ export default function AboutPage() {
       <section className="bg-midnight text-ivory py-24 md:py-32 relative overflow-hidden">
         <div className="texture-grain absolute inset-0 opacity-15 pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-6 md:px-10 lg:px-14">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-16 md:mb-20">
-            <div className="lg:col-span-6">
-              <span className="eyebrow">{values.pillarsEyebrow}</span>
-              <div className="gold-rule mt-5 mb-8" />
-              <h2 className="text-display-lg text-ivory">{values.pillarsTitle}</h2>
+          <Reveal>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-16 md:mb-20">
+              <div className="lg:col-span-6">
+                <span className="eyebrow">{values.pillarsEyebrow}</span>
+                <div className="gold-rule mt-5 mb-8" />
+                <h2 className="text-display-lg text-ivory">{values.pillarsTitle}</h2>
+              </div>
             </div>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-ivory/10">
-            {pillars.map((p) => (
-              <div key={p.no} className="bg-midnight p-10 md:p-12 group">
-                <div className="flex items-baseline justify-between mb-10">
-                  <span className="font-display text-5xl text-champagne">{p.no}</span>
-                  <span className="h-px w-16 bg-ivory/15 group-hover:bg-champagne transition-colors duration-500" />
+            {pillars.map((p, i) => (
+              <Reveal key={p.no} delay={i * 150}>
+                <div className="bg-midnight p-10 md:p-12 group h-full">
+                  <div className="flex items-baseline justify-between mb-10">
+                    <span className="font-display text-5xl text-champagne">{p.no}</span>
+                    <span className="h-px w-16 bg-ivory/15 group-hover:bg-champagne transition-colors duration-500" />
+                  </div>
+                  <h3 className="font-display text-3xl text-ivory mb-5">{p.title}</h3>
+                  <p className="text-ivory/65 font-light leading-relaxed">{p.body}</p>
                 </div>
-                <h3 className="font-display text-3xl text-ivory mb-5">{p.title}</h3>
-                <p className="text-ivory/65 font-light leading-relaxed">{p.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -200,7 +205,7 @@ export default function AboutPage() {
       {/* ── Governance ───────────────────────────────── */}
       <section className="bg-surface py-24 md:py-32 border-t border-border">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-14 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-7">
+          <Reveal direction="left" className="lg:col-span-7">
             <span className="eyebrow">{leadership.leadershipEyebrow}</span>
             <div className="gold-rule mt-5 mb-8" />
             <h2 className="text-display-md text-charcoal mb-8 leading-tight">{leadership.leadershipTitle}</h2>
@@ -209,8 +214,8 @@ export default function AboutPage() {
               {leadership.cta}
               <Icon name="arrow_forward" className="text-base" />
             </Link>
-          </div>
-          <div className="lg:col-span-5">
+          </Reveal>
+          <Reveal direction="right" delay={120} className="lg:col-span-5">
             <div className="relative aspect-[4/5] overflow-hidden bg-midnight">
               <ManagedMedia
                 src={leadership.leadershipImage}
@@ -219,7 +224,7 @@ export default function AboutPage() {
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-[1500ms] ease-out"
               />
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
     </main>

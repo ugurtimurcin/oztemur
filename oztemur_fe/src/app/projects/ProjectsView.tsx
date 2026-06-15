@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
+import Reveal from "@/components/Reveal";
 import Pagination from "@/components/Pagination";
 import { getProjects, getProjectCategories, getMediaUrl, type ProjectDto } from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -197,55 +198,56 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-              {projects.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/projects/${p.slug || p.id}`}
-                  className="group flex flex-col"
-                >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-midnight mb-6">
-                    <Image
-                      src={
-                        getMediaUrl(p.imageUrl) ||
-                        "/images/projects-placeholder.webp"
-                      }
-                      alt={getLocal(p.title)}
-                      fill
-                      sizes="(min-width: 1024px) 30vw, 50vw"
-                      className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-midnight/70 via-transparent to-transparent" />
-                    <div className="absolute top-5 start-5 flex flex-wrap gap-2">
-                      <span className="px-3 py-1.5 bg-cream/95 backdrop-blur text-[10px] uppercase tracking-[0.28em] text-charcoal font-semibold">
-                        {getLocal(p.category) || hero.eyebrow}
-                      </span>
-                      {p.year && (
-                        <span className="px-3 py-1.5 border border-ivory/40 text-[10px] uppercase tracking-[0.28em] text-ivory">
-                          {p.year}
+              {projects.map((p, i) => (
+                <Reveal key={p.id} delay={(i % 3) * 120}>
+                  <Link
+                    href={`/projects/${p.slug || p.id}`}
+                    className="group flex flex-col"
+                  >
+                    <div className="relative aspect-[4/5] overflow-hidden bg-midnight mb-6">
+                      <Image
+                        src={
+                          getMediaUrl(p.imageUrl) ||
+                          "/images/projects-placeholder.webp"
+                        }
+                        alt={getLocal(p.title)}
+                        fill
+                        sizes="(min-width: 1024px) 30vw, 50vw"
+                        className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-midnight/70 via-transparent to-transparent" />
+                      <div className="absolute top-5 start-5 flex flex-wrap gap-2">
+                        <span className="px-3 py-1.5 bg-cream/95 backdrop-blur text-[10px] uppercase tracking-[0.28em] text-charcoal font-semibold">
+                          {getLocal(p.category) || hero.eyebrow}
                         </span>
-                      )}
+                        {p.year && (
+                          <span className="px-3 py-1.5 border border-ivory/40 text-[10px] uppercase tracking-[0.28em] text-ivory">
+                            {p.year}
+                          </span>
+                        )}
+                      </div>
+                      <div className="absolute bottom-5 start-5 flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          p.status === "Operational" || p.status === "Completed" ? "bg-champagne" : "bg-ivory/60"
+                        }`} />
+                        <span className="text-[10px] uppercase tracking-[0.28em] text-ivory/80 font-medium">
+                          {projectStatusLabel(p.status, uiStrings)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="absolute bottom-5 start-5 flex items-center gap-2">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        p.status === "Operational" || p.status === "Completed" ? "bg-champagne" : "bg-ivory/60"
-                      }`} />
-                      <span className="text-[10px] uppercase tracking-[0.28em] text-ivory/80 font-medium">
-                        {projectStatusLabel(p.status, uiStrings)}
-                      </span>
-                    </div>
-                  </div>
 
-                  <h3 className="font-display text-2xl md:text-[1.7rem] text-charcoal leading-snug mb-3 group-hover:text-champagne-dim transition-colors">
-                    {getLocal(p.title)}
-                  </h3>
-                  <p className="text-on-muted font-light leading-relaxed line-clamp-2 mb-5 whitespace-pre-line">
-                    {getLocal(p.description)}
-                  </p>
-                  <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-charcoal pb-1.5 border-b border-charcoal/30 self-start group-hover:border-champagne group-hover:text-champagne transition-colors">
-                    {labels.explore}
-                    <Icon name="arrow_forward" className="text-base group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                </Link>
+                    <h3 className="font-display text-2xl md:text-[1.7rem] text-charcoal leading-snug mb-3 group-hover:text-champagne-dim transition-colors">
+                      {getLocal(p.title)}
+                    </h3>
+                    <p className="text-on-muted font-light leading-relaxed line-clamp-2 mb-5 whitespace-pre-line">
+                      {getLocal(p.description)}
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-charcoal pb-1.5 border-b border-charcoal/30 self-start group-hover:border-champagne group-hover:text-champagne transition-colors">
+                      {labels.explore}
+                      <Icon name="arrow_forward" className="text-base group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
+                  </Link>
+                </Reveal>
               ))}
             </div>
           )}

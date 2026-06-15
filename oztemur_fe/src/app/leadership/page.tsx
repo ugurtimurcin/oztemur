@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getMediaUrl } from "@/lib/api";
 import Header from "@/components/Header";
+import Reveal from "@/components/Reveal";
 import Icon from "@/components/Icon";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5137";
@@ -123,30 +124,32 @@ export default async function Page() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-              {members.map((m) => (
-                <Link key={m.id} href={`/leadership/${m.slug || m.id}`} className="group block">
-                  <div className="aspect-[4/5] overflow-hidden bg-midnight mb-6 relative">
-                    {m.photoUrl ? (
-                      <Image
-                        src={getMediaUrl(m.photoUrl)}
-                        alt={m.name}
-                        fill
-                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-ivory/30 bg-gradient-to-br from-midnight-soft to-midnight-deep">
-                        <Icon name="person" className="text-6xl" />
-                      </div>
+              {members.map((m, i) => (
+                <Reveal key={m.id} delay={(i % 3) * 130}>
+                  <Link href={`/leadership/${m.slug || m.id}`} className="group block">
+                    <div className="aspect-[4/5] overflow-hidden bg-midnight mb-6 relative">
+                      {m.photoUrl ? (
+                        <Image
+                          src={getMediaUrl(m.photoUrl)}
+                          alt={m.name}
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-ivory/30 bg-gradient-to-br from-midnight-soft to-midnight-deep">
+                          <Icon name="person" className="text-6xl" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-midnight/40 via-transparent to-transparent" />
+                    </div>
+                    <span className="eyebrow text-champagne block mb-2">{m.role}</span>
+                    <h3 className="font-display text-2xl text-charcoal leading-snug mb-4 group-hover:text-champagne transition-colors">{m.name}</h3>
+                    {m.bio && (
+                      <p className="text-on-muted font-light leading-relaxed line-clamp-4 whitespace-pre-line">{m.bio}</p>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-midnight/40 via-transparent to-transparent" />
-                  </div>
-                  <span className="eyebrow text-champagne block mb-2">{m.role}</span>
-                  <h3 className="font-display text-2xl text-charcoal leading-snug mb-4 group-hover:text-champagne transition-colors">{m.name}</h3>
-                  {m.bio && (
-                    <p className="text-on-muted font-light leading-relaxed line-clamp-4 whitespace-pre-line">{m.bio}</p>
-                  )}
-                </Link>
+                  </Link>
+                </Reveal>
               ))}
             </div>
           </div>

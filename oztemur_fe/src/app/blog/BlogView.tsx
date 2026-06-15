@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Pagination from "@/components/Pagination";
+import Reveal from "@/components/Reveal";
 import { getBlogPosts, getMediaUrl, type BlogPostDto } from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSection } from "@/lib/SiteContentContext";
@@ -150,8 +151,8 @@ export default function BlogPage() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {posts.map((post) => (
-                  <article key={post.id} className="group py-12 first:pt-0 last:pb-0">
+                {posts.map((post, i) => (
+                  <Reveal key={post.id} delay={(i % 4) * 100}><article className="group py-12 first:pt-0 last:pb-0">
                     <Link href={`/blog/${post.slug}`} className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
                       {post.imageUrl && (
                         <div className="md:col-span-4 relative aspect-[4/3] overflow-hidden bg-midnight">
@@ -189,7 +190,7 @@ export default function BlogPage() {
                         </div>
                       </div>
                     </Link>
-                  </article>
+                  </article></Reveal>
                 ))}
               </div>
             )}

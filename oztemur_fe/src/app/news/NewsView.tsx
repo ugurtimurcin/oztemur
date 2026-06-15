@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Pagination from "@/components/Pagination";
+import Reveal from "@/components/Reveal";
 import { getNews, getMediaUrl, type NewsArticleDto } from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSection } from "@/lib/SiteContentContext";
@@ -194,31 +195,33 @@ export default function NewsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-12">
-                  {rest.map((a) => (
-                    <Link key={a.id} href={`/news/${a.slug}`} className="group flex flex-col">
-                      <div className="relative aspect-[4/3] overflow-hidden bg-midnight mb-6">
-                        <Image
-                          src={getMediaUrl(a.imageUrl)}
-                          alt={a.title}
-                          fill
-                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
-                        />
-                      </div>
-                      <span className="text-[11px] uppercase tracking-[0.28em] text-on-muted mb-4">
-                        {fmt(a.publishedAt)}
-                      </span>
-                      <h3 className="font-display text-2xl text-charcoal leading-snug mb-4 group-hover:text-champagne-dim transition-colors line-clamp-2">
-                        {a.title}
-                      </h3>
-                      <p className="text-on-muted font-light leading-relaxed line-clamp-3 mb-5">
-                        {a.summary}
-                      </p>
-                      <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-charcoal pb-1.5 border-b border-charcoal/30 self-start group-hover:border-champagne group-hover:text-champagne transition-colors">
-                        {labels.read}
-                        <Icon name="arrow_forward" className="text-base group-hover:translate-x-1 transition-transform duration-300" />
-                      </span>
-                    </Link>
+                  {rest.map((a, i) => (
+                    <Reveal key={a.id} delay={(i % 3) * 120}>
+                      <Link href={`/news/${a.slug}`} className="group flex flex-col">
+                        <div className="relative aspect-[4/3] overflow-hidden bg-midnight mb-6">
+                          <Image
+                            src={getMediaUrl(a.imageUrl)}
+                            alt={a.title}
+                            fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1100ms] ease-out"
+                          />
+                        </div>
+                        <span className="text-[11px] uppercase tracking-[0.28em] text-on-muted mb-4">
+                          {fmt(a.publishedAt)}
+                        </span>
+                        <h3 className="font-display text-2xl text-charcoal leading-snug mb-4 group-hover:text-champagne-dim transition-colors line-clamp-2">
+                          {a.title}
+                        </h3>
+                        <p className="text-on-muted font-light leading-relaxed line-clamp-3 mb-5">
+                          {a.summary}
+                        </p>
+                        <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-charcoal pb-1.5 border-b border-charcoal/30 self-start group-hover:border-champagne group-hover:text-champagne transition-colors">
+                          {labels.read}
+                          <Icon name="arrow_forward" className="text-base group-hover:translate-x-1 transition-transform duration-300" />
+                        </span>
+                      </Link>
+                    </Reveal>
                   ))}
                 </div>
 

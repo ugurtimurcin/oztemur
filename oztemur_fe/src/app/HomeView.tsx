@@ -8,6 +8,7 @@ import GroupAtGlance from "@/components/GroupAtGlance";
 import SectorShowcase from "@/components/SectorShowcase";
 import ProjectsShowcase from "@/components/ProjectsShowcase";
 import Newsroom from "@/components/Newsroom";
+import Reveal from "@/components/Reveal";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSection } from "@/lib/SiteContentContext";
 import Icon from "@/components/Icon";
@@ -41,22 +42,22 @@ export default function Home() {
       <HomeHero />
 
       {/* ── 2. Group at a glance (dark stats) ─────────── */}
-      <GroupAtGlance />
+      <Reveal><GroupAtGlance /></Reveal>
 
       {/* ── 3. Sector / companies showcase ─────────────── */}
-      <SectorShowcase />
+      <Reveal><SectorShowcase /></Reveal>
 
       {/* ── 4. Editorial philosophy band ──────────────── */}
       <section className="relative bg-surface border-t border-border py-24 md:py-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-14 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-5 lg:sticky lg:top-32">
+          <Reveal direction="left" className="lg:col-span-5 lg:sticky lg:top-32">
             <span className="eyebrow">{c.eyebrow}</span>
             <div className="gold-rule mt-5 mb-8" />
             <h2 className="text-display-lg text-charcoal leading-tight">
               {c.title}
             </h2>
-          </div>
-          <div className="lg:col-span-6 lg:col-start-7">
+          </Reveal>
+          <Reveal direction="right" delay={120} className="lg:col-span-6 lg:col-start-7">
             <div className="relative aspect-[4/3] overflow-hidden mb-12 bg-midnight">
               <Image
                 src="/images/home-philosophy.webp"
@@ -74,15 +75,15 @@ export default function Home() {
               {c.cta}
               <Icon name="arrow_forward" className="text-base arrow" />
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── 5. Projects showcase ──────────────────────── */}
-      <ProjectsShowcase />
+      <Reveal><ProjectsShowcase /></Reveal>
 
       {/* ── 6. Newsroom ───────────────────────────────── */}
-      <Newsroom />
+      <Reveal><Newsroom /></Reveal>
     </main>
   );
 }
