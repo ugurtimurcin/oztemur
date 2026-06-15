@@ -12,6 +12,12 @@ import Icon from "@/components/Icon";
 
 const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LINKEDIN_RE = /^https?:\/\/(?:[a-z0-9-]+\.)*linkedin\.com\/[^\s]*$/i;
+const NAME_MAX = 120;
+const EMAIL_MAX = 254;
+const LINKEDIN_MAX = 200;
+const SUMMARY_MAX = 5000;
+const CV_MAX_BYTES = 10 * 1024 * 1024;
 
 const LABELS_FALLBACK: Record<string, Record<string, string>> = {
   tr: {
@@ -116,6 +122,12 @@ export default function CareerDetailPage() {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > CV_MAX_BYTES) {
+      setInvalid(prev => ({ ...prev, cv: true }));
+      e.target.value = "";
+      setForm((f) => ({ ...f, cvBase64: "" }));
+      return;
+    }
     setInvalid(prev => (prev.cv ? { ...prev, cv: false } : prev));
     const reader = new FileReader();
     reader.onloadend = () => setForm((f) => ({ ...f, cvBase64: reader.result as string }));
@@ -127,8 +139,14 @@ export default function CareerDetailPage() {
     if (!job) return;
     setFormError(null);
     const bad: Record<string, boolean> = {};
-    if (!form.name.trim()) bad.name = true;
-    if (!EMAIL_RE.test(form.email.trim())) bad.email = true;
+    const nameTrim = form.name.trim();
+    const emailTrim = form.email.trim();
+    const linkedInTrim = form.linkedIn.trim();
+    const summaryTrim = form.summary.trim();
+    if (!nameTrim || nameTrim.length > NAME_MAX) bad.name = true;
+    if (emailTrim.length > EMAIL_MAX || !EMAIL_RE.test(emailTrim)) bad.email = true;
+    if (linkedInTrim && (linkedInTrim.length > LINKEDIN_MAX || !LINKEDIN_RE.test(linkedInTrim))) bad.linkedIn = true;
+    if (summaryTrim.length > SUMMARY_MAX) bad.summary = true;
     if (!form.cvBase64) bad.cv = true;
     if (!consent) bad.consent = true;
     setInvalid(bad);
@@ -293,6 +311,8 @@ export default function CareerDetailPage() {
                           type="text"
                           value={form.name}
                           onChange={(e) => setField("name", e.target.value)}
+                          maxLength={NAME_MAX}
+                          required
                           className={fieldCls("name")}
                         />
                       </div>
@@ -302,6 +322,8 @@ export default function CareerDetailPage() {
                           type="email"
                           value={form.email}
                           onChange={(e) => setField("email", e.target.value)}
+                          maxLength={EMAIL_MAX}
+                          required
                           className={fieldCls("email")}
                         />
                       </div>
@@ -310,9 +332,15 @@ export default function CareerDetailPage() {
                         <input
                           type="url"
                           value={form.linkedIn}
-                          onChange={(e) => setForm((f) => ({ ...f, linkedIn: e.target.value }))}
-                          className="w-full bg-midnight-soft border border-ivory/15 px-4 py-3 text-ivory focus:outline-none focus:border-champagne transition-colors text-sm"
-                          placeholder="https://"
+                          onChange={(e) => {
+                            setForm((f) => ({ ...f, linkedIn: e.target.value }));
+                            setInvalid(prev => (prev.linkedIn ? { ...prev, linkedIn: false } : prev));
+                          }}
+                          maxLength={LINKEDIN_MAX}
+                          className={`w-full bg-midnight-soft border px-4 py-3 text-ivory focus:outline-none transition-colors text-sm ${
+                            invalid.linkedIn ? "border-danger focus:border-danger" : "border-ivory/15 focus:border-champagne"
+                          }`}
+                          placeholder="https://www.linkedin.com/in/..."
                         />
                       </div>
                       <div className="flex flex-col gap-2">
@@ -329,8 +357,14 @@ export default function CareerDetailPage() {
                         <textarea
                           rows={4}
                           value={form.summary}
-                          onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
-                          className="w-full bg-midnight-soft border border-ivory/15 px-4 py-3 text-ivory focus:outline-none focus:border-champagne transition-colors text-sm font-light resize-none"
+                          onChange={(e) => {
+                            setForm((f) => ({ ...f, summary: e.target.value }));
+                            setInvalid(prev => (prev.summary ? { ...prev, summary: false } : prev));
+                          }}
+                          maxLength={SUMMARY_MAX}
+                          className={`w-full bg-midnight-soft border px-4 py-3 text-ivory focus:outline-none transition-colors text-sm font-light resize-none ${
+                            invalid.summary ? "border-danger focus:border-danger" : "border-ivory/15 focus:border-champagne"
+                          }`}
                           placeholder={c.summaryPlaceholder}
                         />
                       </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { careersApi, getMediaUrl, hasPermission, type JobApplicationDto, type ApplicationReplyDto, ApplicationStatus } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 import { useI18n } from "@/lib/i18n";
+import { safeExternalUrl } from "@/lib/url";
 import Icon from "@/components/Icon";
 
 const statusOptions = [
@@ -213,11 +214,30 @@ export default function ApplicationDetailPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13, color: "var(--on-surface-variant)" }}>
                 <Icon name="mail" style={{ fontSize: 18 }} /> {app.email}
               </div>
-              {app.linkedInUrl && (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13, color: "var(--on-surface-variant)" }}>
-                  <Icon name="link" style={{ fontSize: 18 }} /> linkedin.com
-                </div>
-              )}
+              {(() => {
+                const liHref = safeExternalUrl(app.linkedInUrl);
+                if (!liHref) return null;
+                let display: string;
+                try {
+                  const u = new URL(liHref);
+                  display = `${u.host}${u.pathname}`.replace(/\/$/, "");
+                } catch {
+                  display = liHref;
+                }
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
+                    <Icon name="link" style={{ fontSize: 18, color: "var(--on-surface-variant)" }} />
+                    <a
+                      href={liHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "var(--primary)", textDecoration: "none", wordBreak: "break-all" }}
+                    >
+                      {display}
+                    </a>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

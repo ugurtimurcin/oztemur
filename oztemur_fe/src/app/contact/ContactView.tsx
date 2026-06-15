@@ -10,6 +10,11 @@ import Icon from "@/components/Icon";
 
 const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_MAX = 120;
+const EMAIL_MAX = 254;
+const SUBJECT_MAX = 200;
+const MESSAGE_MIN = 10;
+const MESSAGE_MAX = 5000;
 
 const HERO_FALLBACK: Record<string, Record<string, string>> = {
   tr: {
@@ -132,10 +137,14 @@ export default function ContactPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const bad: Record<string, boolean> = {};
-    if (!formData.name.trim()) bad.name = true;
-    if (!EMAIL_RE.test(formData.email.trim())) bad.email = true;
-    if (!formData.subject.trim()) bad.subject = true;
-    if (!formData.message.trim()) bad.message = true;
+    const nameTrim = formData.name.trim();
+    const emailTrim = formData.email.trim();
+    const subjectTrim = formData.subject.trim();
+    const messageTrim = formData.message.trim();
+    if (!nameTrim || nameTrim.length > NAME_MAX) bad.name = true;
+    if (emailTrim.length > EMAIL_MAX || !EMAIL_RE.test(emailTrim)) bad.email = true;
+    if (!subjectTrim || subjectTrim.length > SUBJECT_MAX) bad.subject = true;
+    if (messageTrim.length < MESSAGE_MIN || messageTrim.length > MESSAGE_MAX) bad.message = true;
     setInvalid(bad);
     if (Object.keys(bad).length > 0) return;
 
@@ -277,6 +286,8 @@ export default function ContactPage() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setField("name", e.target.value)}
+                      maxLength={NAME_MAX}
+                      required
                       className={fieldCls("name")}
                     />
                   </div>
@@ -288,6 +299,8 @@ export default function ContactPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setField("email", e.target.value)}
+                      maxLength={EMAIL_MAX}
+                      required
                       className={fieldCls("email")}
                     />
                   </div>
@@ -301,6 +314,8 @@ export default function ContactPage() {
                     type="text"
                     value={formData.subject}
                     onChange={(e) => setField("subject", e.target.value)}
+                    maxLength={SUBJECT_MAX}
+                    required
                     className={fieldCls("subject")}
                   />
                 </div>
@@ -314,6 +329,9 @@ export default function ContactPage() {
                     value={formData.message}
                     onChange={(e) => setField("message", e.target.value)}
                     placeholder={form.messagePlaceholder}
+                    minLength={MESSAGE_MIN}
+                    maxLength={MESSAGE_MAX}
+                    required
                     className={fieldCls("message", "resize-none font-light")}
                   />
                 </div>
