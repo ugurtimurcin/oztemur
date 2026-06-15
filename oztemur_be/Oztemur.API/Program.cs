@@ -72,6 +72,13 @@ if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
 var jwtAudience = builder.Configuration["Jwt:Audience"]!;
 
+if (builder.Environment.IsProduction() &&
+    string.IsNullOrWhiteSpace(builder.Configuration["Turnstile:SecretKey"]))
+    throw new InvalidOperationException(
+        "Turnstile:SecretKey is required when ASPNETCORE_ENVIRONMENT=Production. " +
+        "Set the Turnstile__SecretKey environment variable, or change the environment " +
+        "if you genuinely want Turnstile disabled (not recommended).");
+
 // ─── Storage paths — resolve relative config values against the content root ───
 string ResolveStoragePath(string key)
 {
@@ -110,6 +117,11 @@ builder.Services.AddScoped<Oztemur.API.Features.Notifications.Services.INotifica
 // AuditLog retention — runs once on startup (after a stagger) and then
 // every 24h, trimming rows older than Audit:RetentionDays (default 35).
 builder.Services.AddHostedService<Oztemur.API.Features.Audit.AuditLogPurger>();
+
+// RefreshToken retention — rotates daily, default 7 days. Sibling of
+// the audit purger but with a tighter window because a 15-min access
+// TTL means roughly one new row every 14 min per active session.
+builder.Services.AddHostedService<Oztemur.API.Features.Auth.RefreshTokenPurger>();
 
 // ─── Email: DataProtection + SMTP service ─────────────────────────────────
 // DataProtection keys persist to a volume so encrypted SMTP passwords stay

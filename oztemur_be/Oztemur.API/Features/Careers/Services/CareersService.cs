@@ -1,21 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Oztemur.API.Common.Models;
 using Oztemur.API.Domain.Entities;
 using Oztemur.API.Domain.Enums;
 using Oztemur.API.Features.Notifications.Services;
 using Oztemur.API.Infrastructure.Repositories;
-using Microsoft.Extensions.Configuration;
 
 using Oztemur.API.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace Oztemur.API.Features.Careers.Services;
 
-public class CareersService : ICareersService
+public partial class CareersService : ICareersService
 {
+    private const int MaxCandidateNameLength = 120;
+    private const int MaxEmailLength = 254;
+    private const int MaxLinkedInUrlLength = 200;
+    private const int MaxExecutiveSummaryLength = 5000;
+
+    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase)]
+    private static partial Regex EmailRegex();
     private readonly IRepository<JobRequisition> _jobRepo;
     private readonly IRepository<JobApplication> _appRepo;
     private readonly IConfiguration _configuration;
@@ -86,9 +89,32 @@ public class CareersService : ICareersService
     public async Task<Result> SubmitApplicationAsync(JobApplicationDto request)
     {
         var targetJob = await _jobRepo.GetByIdAsync(request.JobRequisitionId);
-        if (targetJob == null || !targetJob.IsActive) 
+        if (targetJob == null || !targetJob.IsActive)
         {
             return Result.Failure("Target job requisition does not exist or is no longer active.");
+        }
+
+        var candidateName    = (request.CandidateName ?? string.Empty).Trim();
+        var email            = (request.Email ?? string.Empty).Trim();
+        var linkedInUrl      = (request.LinkedInUrl ?? string.Empty).Trim();
+        var executiveSummary = (request.ExecutiveSummary ?? string.Empty).Trim();
+
+        if (string.IsNullOrEmpty(candidateName) || candidateName.Length > MaxCandidateNameLength)
+            return Result.Failure("Candidate name is required and must be under 120 characters.");
+        if (string.IsNullOrEmpty(email) || email.Length > MaxEmailLength || !EmailRegex().IsMatch(email))
+            return Result.Failure("A valid email address is required.");
+        if (executiveSummary.Length > MaxExecutiveSummaryLength)
+            return Result.Failure($"Executive summary must be under {MaxExecutiveSummaryLength} characters.");
+
+        if (!string.IsNullOrEmpty(linkedInUrl))
+        {
+            if (linkedInUrl.Length > MaxLinkedInUrlLength
+                || !Uri.TryCreate(linkedInUrl, UriKind.Absolute, out var parsedLi)
+                || (parsedLi.Scheme != Uri.UriSchemeHttp && parsedLi.Scheme != Uri.UriSchemeHttps)
+                || !parsedLi.Host.EndsWith("linkedin.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure("LinkedIn URL must be a valid linkedin.com profile address.");
+            }
         }
 
         var basePath = _configuration["Storage:CvUploadPath"] ?? "/var/oztemur/cvs";
@@ -135,10 +161,10 @@ public class CareersService : ICareersService
         var appData = new JobApplication
         {
             JobRequisitionId = request.JobRequisitionId,
-            CandidateName = request.CandidateName,
-            Email = request.Email,
-            LinkedInUrl = request.LinkedInUrl,
-            ExecutiveSummary = request.ExecutiveSummary,
+            CandidateName = candidateName,
+            Email = email,
+            LinkedInUrl = linkedInUrl,
+            ExecutiveSummary = executiveSummary,
             CvBlobPath = cvBlobPath
         };
 
@@ -149,11 +175,11 @@ public class CareersService : ICareersService
             permissionArea: "applications",
             type: "job_application",
             title: "New job application",
-            message: $"{request.CandidateName} · {L(targetJob.Title, "tr")}",
+            message: $"{candidateName} · {L(targetJob.Title, "tr")}",
             link: $"/applications/{appData.Id}",
             entityId: appData.Id);
 
-        return Result.Ok($"Application for {request.CandidateName} submitted successfully.");
+        return Result.Ok($"Application for {candidateName} submitted successfully.");
     }
 
     public async Task<Result<JobRequisition>> CreateJobAsync(Dictionary<string, string> title, Dictionary<string, string> department, string location, string type, Dictionary<string, string> description, Dictionary<string, List<string>> requirements, Dictionary<string, List<string>> coreObjectives)
